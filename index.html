@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>PagBank Teste - Produção</title>
+
+<!-- SDK Oficial do PagBank -->
+<script src="https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js"></script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 24px 16px; }
+  h1 { color: #00c18a; margin-bottom: 24px; font-size: 20px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .tab { padding: 10px 24px; border-radius: 8px; border: 1px solid #334155; background: transparent; color: #94a3b8; cursor: pointer; font-weight: 600; font-size: 14px; transition: all .2s; }
+  .tab.active { background: #00c18a; border-color: #00c18a; color: #fff; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; max-width: 480px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  label { font-size: 12px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .4px; }
+  input, select { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 8px; padding: 10px 14px; font-size: 14px; outline: none; width: 100%; }
+  input:focus, select:focus { border-color: #00c18a; }
+  .btn { width: 100%; padding: 12px; background: #00c18a; border: none; border-radius: 8px; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .btn:disabled { background: #334155; color: #475569; cursor: not-allowed; }
+  .result { margin-top: 16px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 16px; display: none; }
+  .result.ok { border-color: #00c18a44; }
+  .result.err { border-color: #ef444444; }
+  .result h3 { font-size: 13px; margin-bottom: 10px; }
+  .result h3.ok { color: #00c18a; }
+  .result h3.err { color: #ef4444; }
+  .qr-img { display: block; margin: 12px auto; border: 4px solid #fff; border-radius: 8px; }
+  .pix-code { background: #1e293b; border-radius: 6px; padding: 10px; font-size: 11px; font-family: monospace; word-break: break-all; color: #60a5fa; margin-top: 10px; }
+  .copy-btn { margin-top: 8px; width: 100%; padding: 8px; background: #334155; border: none; border-radius: 6px; color: #e2e8f0; cursor: pointer; font-size: 13px; }
+  .copy-btn:hover { background: #475569; }
+  .panel { display: none; } .panel.active { display: block; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+</style>
+</head>
+<body>
+
+<h1>🏦 PagBank — Produção</h1>
+
+<div class="tabs">
+  <button class="tab active" onclick="setTab('pix')">⚡ PIX</button>
+  <button class="tab" onclick="setTab('cartao')">💳 Cartão</button>
+</div>
+
+<!-- PIX -->
+<div class="panel active" id="panelPix">
+  <div class="card">
+    <div class="form-group">
+      <label>Nome completo</label>
+      <input id="pixNome" type="text" placeholder="João da Silva" value="João da Silva" />
+    </div>
+    <div class="form-group">
+      <label>E-mail</label>
+      <input id="pixEmail" type="email" placeholder="joao@email.com" value="joao@email.com" />
+    </div>
+    <div class="form-group">
+      <label>CPF</label>
+      <input id="pixCpf" type="text" placeholder="000.000.000-00" value="012.345.678-90" />
+    </div>
+    <div class="form-group">
+      <label>Valor (R$)</label>
+      <input id="pixValor" type="number" min="0.01" step="0.01" placeholder="1.00" value="1.00" />
+    </div>
+    <div class="form-group">
+      <label>Descrição</label>
+      <input id="pixDesc" type="text" placeholder="Produto ou serviço" value="Pagamento PIX" />
+    </div>
+    <button class="btn" id="btnPix" onclick="pagarPix()">Gerar PIX</button>
+    <div class="result" id="resPix"></div>
+  </div>
+</div>
+
+<!-- CARTÃO -->
+<div class="panel" id="panelCartao">
+  <div class="card">
+    <div class="form-group">
+      <label>Nome completo</label>
+      <input id="ctNome" type="text" placeholder="João da Silva" value="João da Silva" />
+    </div>
+    <div class="form-group">
+      <label>E-mail</label>
+      <input id="ctEmail" type="email" value="joao@email.com" />
+    </div>
+    <div class="form-group">
+      <label>CPF (válido)</label>
+      <input id="ctCpf" type="text" value="012.345.678-90" />
+    </div>
+    <div class="form-group">
+      <label>Valor (R$)</label>
+      <input id="ctValor" type="number" min="1" step="0.01" value="50.00" />
+    </div>
+    <div class="form-group">
+      <label>Descrição</label>
+      <input id="ctDesc" type="text" value="Pagamento Cartão" />
+    </div>
+    <hr style="border-color:#334155;margin:16px 0;">
+    <div class="form-group">
+      <label>Número do Cartão</label>
+      <input id="ctNumero" type="text" maxlength="19" placeholder="4111 1111 1111 1111" oninput="formatCard(this)" />
+    </div>
+    <div class="grid2">
+      <div class="form-group">
+        <label>Validade</label>
+        <input id="ctValidade" type="text" maxlength="5" placeholder="MM/AA" oninput="formatDate(this)" />
+      </div>
+      <div class="form-group">
+        <label>CVV</label>
+        <input id="ctCvv" type="text" maxlength="4" placeholder="123" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Nome no cartão</label>
+      <input id="ctNomeCartao" type="text" placeholder="JOAO DA SILVA" oninput="this.value=this.value.toUpperCase()" />
+    </div>
+    <div class="form-group">
+      <label>Parcelas</label>
+      <select id="ctParcelas">
+        <option value="1">1x sem juros</option>
+        <option value="2">2x sem juros</option>
+        <option value="3">3x sem juros</option>
+        <option value="6">6x sem juros</option>
+        <option value="12">12x sem juros</option>
+      </select>
+    </div>
+    <button class="btn" id="btnCartao" onclick="pagarCartao()">Pagar com Cartão</button>
+    <div class="result" id="resCartao"></div>
+  </div>
+</div>
+
+<script>
+// AQUI ESTÁ A MUDANÇA PARA A VERCEL!
+const API = '/api';
+let PUBLIC_KEY = null;
+
+// Busca a chave pública real ao carregar a página
+(async () => {
+  try {
+    const r = await fetch(`${API}/chave-publica`);
+    const d = await r.json();
+    PUBLIC_KEY = d.public_key;
+    console.log('✅ Chave pública carregada:', PUBLIC_KEY?.substring(0,40) + '...');
+  } catch(e) {
+    console.error('❌ Erro ao buscar chave pública:', e.message);
+  }
+})();
+
+function setTab(t) {
+  document.querySelectorAll('.tab').forEach((b,i) => b.classList.toggle('active', ['pix','cartao'][i]===t));
+  document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', ['pix','cartao'][i]===t));
+}
+
+function formatCard(el) {
+  el.value = el.value.replace(/\D/g,'').replace(/(.{4})/g,'$1 ').trim().substring(0,19);
+}
+function formatDate(el) {
+  el.value = el.value.replace(/\D/g,'').replace(/^(\d{2})(\d)/,'$1/$2').substring(0,5);
+}
+
+// PIX
+async function pagarPix() {
+  const btn = document.getElementById('btnPix');
+  btn.disabled = true; btn.textContent = 'Gerando...';
+  const box = document.getElementById('resPix');
+  box.style.display = 'none';
+
+  try {
+    const r = await fetch(`${API}/pix`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nome:      document.getElementById('pixNome').value,
+        email:     document.getElementById('pixEmail').value,
+        cpf:       document.getElementById('pixCpf').value,
+        valor:     parseFloat(document.getElementById('pixValor').value),
+        descricao: document.getElementById('pixDesc').value
+      })
+    });
+    const data = await r.json();
+    box.style.display = 'block';
+
+    if (data.qr_codes && data.qr_codes[0]) {
+      const qr = data.qr_codes[0];
+      box.className = 'result ok';
+      box.innerHTML = `
+        <h3 class="ok">✅ PIX gerado com sucesso!</h3>
+        <p style="font-size:12px;color:#64748b;margin-bottom:8px;">ID: ${data.id}</p>
+        ${qr.links?.find(l=>l.rel==='QRCODE.PNG') ? `<img class="qr-img" src="${qr.links.find(l=>l.rel==='QRCODE.PNG').href}" width="200" />` : ''}
+        <div class="pix-code">${qr.text || 'Código PIX não disponível'}</div>
+        <button class="copy-btn" onclick="navigator.clipboard.writeText('${qr.text||''}');this.textContent='✅ Copiado!'">📋 Copiar código PIX</button>
+      `;
+    } else {
+      box.className = 'result err';
+      box.innerHTML = `<h3 class="err">❌ Erro</h3><pre style="font-size:11px;color:#fca5a5;white-space:pre-wrap;">${JSON.stringify(data,null,2)}</pre>`;
+    }
+  } catch(e) {
+    box.style.display = 'block'; box.className = 'result err';
+    box.innerHTML = `<h3 class="err">❌ ${e.message}</h3>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Gerar PIX';
+  }
+}
+
+// CARTÃO
+async function pagarCartao() {
+  const btn = document.getElementById('btnCartao');
+  btn.disabled = true; btn.textContent = 'Processando...';
+  const box = document.getElementById('resCartao');
+  box.style.display = 'none';
+
+  try {
+    if (!PUBLIC_KEY) throw new Error('Chave pública não carregada. Recarregue a página.');
+    
+    const numero   = document.getElementById('ctNumero').value.replace(/\s/g,'');
+    const validade = document.getElementById('ctValidade').value.split('/');
+    const cvv      = document.getElementById('ctCvv').value;
+    const nome     = document.getElementById('ctNomeCartao').value;
+
+    const card = PagSeguro.encryptCard({
+      publicKey: PUBLIC_KEY,
+      holder: nome,
+      number: numero,
+      expMonth: validade[0] || '',
+      expYear: validade[1] ? '20' + validade[1] : '',
+      securityCode: cvv
+    });
+
+    if (card.hasErrors) {
+      throw new Error("Dados do cartão inválidos: " + card.errors[0].message);
+    }
+
+    const r = await fetch(`${API}/cartao`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nome:          document.getElementById('ctNome').value,
+        email:         document.getElementById('ctEmail').value,
+        cpf:           document.getElementById('ctCpf').value,
+        valor:         parseFloat(document.getElementById('ctValor').value),
+        descricao:     document.getElementById('ctDesc').value,
+        cartao_token:  card.encryptedCard,
+        parcelas:      document.getElementById('ctParcelas').value
+      })
+    });
+    
+    const data = await r.json();
+    box.style.display = 'block';
+
+    const charge = data.charges?.[0];
+    if (charge && (charge.status === 'AUTHORIZED' || charge.status === 'PAID')) {
+      box.className = 'result ok';
+      box.innerHTML = `
+        <h3 class="ok">✅ Pagamento aprovado!</h3>
+        <p style="font-size:13px;color:#6ee7b7;margin-top:8px;">Status: ${charge.status}</p>
+        <p style="font-size:12px;color:#64748b;">ID: ${data.id}</p>
+      `;
+    } else {
+      box.className = 'result err';
+      box.innerHTML = `<h3 class="err">❌ Resposta da API</h3><pre style="font-size:11px;color:#fca5a5;white-space:pre-wrap;">${JSON.stringify(data,null,2)}</pre>`;
+    }
+  } catch(e) {
+    box.style.display = 'block'; box.className = 'result err';
+    box.innerHTML = `<h3 class="err">❌ ${e.message}</h3>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Pagar com Cartão';
+  }
+}
+</script>
+</body>
+</html>

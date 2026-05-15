@@ -1,0 +1,7 @@
+{
+  "name": "pagbank-vercel-producao",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "echo 'Deploy na Vercel'"
+  }
+}
